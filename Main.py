@@ -32,8 +32,13 @@ def log_step_message(step, accuracy, accuracy_test, loss, step_time, is_train=Tr
 training_file = 'task21_blocksWorld_training.txt'
 test_file = 'task21_blocksWorld_test.txt'
 
+# temp = test_file
+# test_file = training_file
+# training_file  = temp
+
 # read the training data
-stories, questions, answers, seq_lens, questions_len, object_mask = data_reader.process_data(training_file)
+stories,tstories, questions, tquestions, answers, tanswers, seq_lens,tseq_lens, questions_len,tquestions_len,\
+object_mask,tobject_mask = data_reader.process_data(training_file,test_file)
 
 batch_size = 15
 
@@ -76,7 +81,7 @@ optimizer = tf.contrib.layers.optimize_loss(
 print("Training Starts!")
 session = tf.Session()
 
-max_epoch = 200
+max_epoch = 400
 
 output_save_step = 1000
 start_index = 0
@@ -117,14 +122,14 @@ for s in iter(range(max_epoch)):
     if s % 1 == 0:
         # periodic inference
         accuracy_test = session.run(
-            rnmodel.accuracy, feed_dict={rnmodel.x: batch_x,
-                                         rnmodel.answers: batch_a,
-                                         rnmodel.questions: batch_q,
+            rnmodel.accuracy, feed_dict={rnmodel.x: tstories,
+                                         rnmodel.answers: tanswers,
+                                         rnmodel.questions: tquestions,
                                          rnmodel.is_train: False,
-                                         rnmodel.seq_length: seq_lens[start_index:end_index],
-                                         rnmodel.seq_length_qs: questions_len[start_index:end_index],
-                                         rnmodel.object_mask: object_mask[start_index:end_index],
-                                         rnmodel.batch_size: len(batch_a)})
+                                         rnmodel.seq_length: tseq_lens,
+                                         rnmodel.seq_length_qs: tquestions_len,
+                                         rnmodel.object_mask: tobject_mask,
+                                         rnmodel.batch_size: len(tanswers)})
         log_step_message(s, accuracy, accuracy_test, loss, step_time, False)
 
     start_index = end_index % total_examples
@@ -132,14 +137,14 @@ for s in iter(range(max_epoch)):
 
 # test the model
 print("Testing Starts!")
-stories, questions, answers, seq_lens, questions_len, object_mask = data_reader.process_data(test_file)
+
 accuracy_test = session.run(
-            rnmodel.accuracy, feed_dict={rnmodel.x: stories,
-                                         rnmodel.answers: answers,
-                                         rnmodel.questions: questions,
+            rnmodel.accuracy, feed_dict={rnmodel.x: tstories,
+                                         rnmodel.answers: tanswers,
+                                         rnmodel.questions: tquestions,
                                          rnmodel.is_train: False,
-                                         rnmodel.seq_length: seq_lens,
-                                         rnmodel.seq_length_qs: questions_len,
-                                         rnmodel.object_mask: object_mask,
-                                         rnmodel.batch_size: len(answers)})
+                                         rnmodel.seq_length: tseq_lens,
+                                         rnmodel.seq_length_qs: tquestions_len,
+                                         rnmodel.object_mask: tobject_mask,
+                                         rnmodel.batch_size: len(tanswers)})
 print("accuracy on entire test data is :  " + str(accuracy_test))

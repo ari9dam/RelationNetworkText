@@ -3,6 +3,7 @@ import os
 from copy import deepcopy
 import  numpy as np
 
+sen_words = set()
 def load_data(file_name):
     """ Load  Dataset.
     :param file_name
@@ -11,7 +12,7 @@ def load_data(file_name):
     tasks = []
     curr_task = None
 
-    sen_words = set()
+
 
     max_seq_len = 0
     max_ques_len = 0
@@ -56,9 +57,15 @@ def load_data(file_name):
     return  tasks, max_story_size, max_seq_len, max_ques_len, len(sen_words)
 
 
-def process_data(file_name):
-    tasks, max_story_size, max_seq_len, max_ques_len, dim = load_data(file_name)
+def process_data(train,test):
+    tasks1, max_story_size1, max_seq_len1, max_ques_len1, dim1 = load_data(train)
+    tasks2, max_story_size2, max_seq_len2, max_ques_len2, dim2 = load_data(test)
 
+    max_story_size = max(max_story_size1,max_story_size2)
+    max_seq_len = max(max_seq_len1,max_seq_len2)
+    max_ques_len = max(max_ques_len1,max_ques_len2)
+    dim = max(dim1,dim2)
+    tasks = tasks1+tasks2
     n = len(tasks)
 
     stories = []
@@ -91,7 +98,12 @@ def process_data(file_name):
                 object_mask[i][j][k] = 1
 
     print("Story: {} , Questions: {}, answers: {} ".format(stories.shape, questions.shape, answers.shape))
-    return stories, questions, answers, seq_lens, q_lens, object_mask
+    return stories[0:len(tasks1)], stories[len(tasks1):],\
+           questions[0:len(tasks1)], questions[len(tasks1):],\
+           answers[0:len(tasks1)], answers[len(tasks1):],\
+           seq_lens[0:len(tasks1)], seq_lens[len(tasks1):],\
+           q_lens[0:len(tasks1)], q_lens[len(tasks1):],\
+           object_mask[0:len(tasks1)],object_mask[len(tasks1):]
 
 
 def convert(task, max_story_size, max_seq_len, max_ques_len, dim, V, index):

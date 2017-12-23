@@ -15,8 +15,8 @@ class Model(object):
         self.answer_dim = config['answer_dim']
         self.max_question_len = config['max_question_len']
 
-        self.rnn_state_size_text = self.word_dim
-        self.rnn_state_size_question = self.word_dim
+        self.rnn_state_size_text = 3*self.word_dim
+        self.rnn_state_size_question = 3*self.word_dim
 
         # place holders
         self.is_train = tf.placeholder(tf.bool)
@@ -53,11 +53,11 @@ class Model(object):
         def g_theta(o_i, o_j, q, reuse, scope='g_theta'):
             with tf.variable_scope(scope, reuse=reuse) as scope:
                 g_1 = fully_connected_layer(tf.concat([o_i, o_j, q], axis=1), 256, name='g_1')
-                g_2 = fully_connected_layer(g_1, 512, name='g_2')
-                g_3 = fully_connected_layer(g_2, 512, name='g_3')
+                g_2 = fully_connected_layer(g_1, 256, name='g_2')
+                g_3 = fully_connected_layer(g_2, 256, name='g_3')
                 g_4 = fully_connected_layer(g_3, 256, name='g_4')
                 g_5 = fully_connected_layer(g_4, 256, name='g_5')
-                return g_5
+                return g_3  #change here
 
         def relation_network(objects, mask, q):
             all_g = []
@@ -82,9 +82,9 @@ class Model(object):
 
         def f_phi(g, scope='f_phi'):
             with tf.variable_scope(scope) as scope:
-                fc_1 = fully_connected_layer(g, 256, name='fc_1')
-                fc_2 = fully_connected_layer(fc_1, 256, name='fc_2')
-                fc_2 = slim.dropout(fc_2, keep_prob=0.5, is_training=self.is_train, scope='fc_3/')
+                fc_1 = fully_connected_layer(g, self.answer_dim+6, name='fc_1')
+                fc_2 = fully_connected_layer(fc_1, self.answer_dim, name='fc_2')
+                #fc_2 = slim.dropout(fc_2, keep_prob=0.5, is_training=self.is_train, scope='fc_3/')
                 fc_3 = fully_connected_layer(fc_2, self.answer_dim, activation_fn=tf.nn.relu, name='fc_3')
                 return fc_3
 
