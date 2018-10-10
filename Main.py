@@ -32,18 +32,15 @@ def log_step_message(step, accuracy, accuracy_test, loss, step_time, is_train=Tr
 training_file = 'task21_blocksWorld_training.txt'
 test_file = 'task21_blocksWorld_test.txt'
 
-# temp = test_file
-# test_file = training_file
-# training_file  = temp
 
 # read the training data
 stories,tstories, questions, tquestions, answers, tanswers, seq_lens,tseq_lens, questions_len,tquestions_len,\
-object_mask,tobject_mask = data_reader.process_data(training_file,test_file)
+object_mask,tobject_mask, tasks = data_reader.process_data(training_file,test_file)
 
-batch_size = 15
 
 # compute number of batches
 total_examples = answers.shape[0]
+batch_size = 25
 number_of_batches = math.ceil(total_examples /batch_size)
 
 # create the model
@@ -81,7 +78,7 @@ optimizer = tf.contrib.layers.optimize_loss(
 print("Training Starts!")
 session = tf.Session()
 
-max_epoch = 400
+max_epoch = 800
 
 output_save_step = 1000
 start_index = 0
@@ -138,8 +135,8 @@ for s in iter(range(max_epoch)):
 # test the model
 print("Testing Starts!")
 
-accuracy_test = session.run(
-            rnmodel.accuracy, feed_dict={rnmodel.x: tstories,
+accuracy_test,  prediction_summary= session.run(
+            [rnmodel.accuracy, rnmodel.prediction_summary], feed_dict={rnmodel.x: tstories,
                                          rnmodel.answers: tanswers,
                                          rnmodel.questions: tquestions,
                                          rnmodel.is_train: False,
@@ -148,3 +145,16 @@ accuracy_test = session.run(
                                          rnmodel.object_mask: tobject_mask,
                                          rnmodel.batch_size: len(tanswers)})
 print("accuracy on entire test data is :  " + str(accuracy_test))
+
+
+error_examples = []
+for i in range(0,len(prediction_summary)):
+    if not prediction_summary[i]:
+        for item in tasks[i]['Story']:
+            error_examples.append(" ".join(item))
+        error_examples.append(" ".join(tasks[i]['Question']) +" " +tasks[i]['Answer']+"\n")
+
+
+thefile = open('error.txt', 'w')
+for item in error_examples:
+  thefile.write("%s\n" % item)

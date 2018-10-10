@@ -103,7 +103,7 @@ def process_data(train,test):
            answers[0:len(tasks1)], answers[len(tasks1):],\
            seq_lens[0:len(tasks1)], seq_lens[len(tasks1):],\
            q_lens[0:len(tasks1)], q_lens[len(tasks1):],\
-           object_mask[0:len(tasks1)],object_mask[len(tasks1):]
+           object_mask[0:len(tasks1)],object_mask[len(tasks1):],tasks2
 
 
 def convert(task, max_story_size, max_seq_len, max_ques_len, dim, V, index):

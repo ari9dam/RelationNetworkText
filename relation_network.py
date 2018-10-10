@@ -15,8 +15,8 @@ class Model(object):
         self.answer_dim = config['answer_dim']
         self.max_question_len = config['max_question_len']
 
-        self.rnn_state_size_text = 3*self.word_dim
-        self.rnn_state_size_question = 3*self.word_dim
+        self.rnn_state_size_text = 2*self.word_dim
+        self.rnn_state_size_question = 2*self.word_dim
 
         # place holders
         self.is_train = tf.placeholder(tf.bool)
@@ -39,7 +39,7 @@ class Model(object):
             # Classification accuracy
             correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-            return tf.reduce_mean(loss), accuracy
+            return tf.reduce_mean(loss), accuracy, correct_prediction
             # }}}
 
         def create_rnn_cell(size):  # Create a cell that should be reused
@@ -52,12 +52,12 @@ class Model(object):
 
         def g_theta(o_i, o_j, q, reuse, scope='g_theta'):
             with tf.variable_scope(scope, reuse=reuse) as scope:
-                g_1 = fully_connected_layer(tf.concat([o_i, o_j, q], axis=1), 256, name='g_1')
-                g_2 = fully_connected_layer(g_1, 256, name='g_2')
-                g_3 = fully_connected_layer(g_2, 256, name='g_3')
+                g_1 = fully_connected_layer(tf.concat([o_i, o_j, q], axis=1), 2*self.rnn_state_size_text, name='g_1')
+                g_2 = fully_connected_layer(g_1, 1, name='g_2')
+                g_3 = fully_connected_layer(g_2, 8*self.rnn_state_size_text, name='g_3')
                 g_4 = fully_connected_layer(g_3, 256, name='g_4')
                 g_5 = fully_connected_layer(g_4, 256, name='g_5')
-                return g_3  #change here
+                return g_2  #change here
 
         def relation_network(objects, mask, q):
             all_g = []
@@ -82,11 +82,11 @@ class Model(object):
 
         def f_phi(g, scope='f_phi'):
             with tf.variable_scope(scope) as scope:
-                fc_1 = fully_connected_layer(g, self.answer_dim+6, name='fc_1')
+                fc_1 = fully_connected_layer(g, self.answer_dim, name='fc_1')
                 fc_2 = fully_connected_layer(fc_1, self.answer_dim, name='fc_2')
                 #fc_2 = slim.dropout(fc_2, keep_prob=0.5, is_training=self.is_train, scope='fc_3/')
                 fc_3 = fully_connected_layer(fc_2, self.answer_dim, activation_fn=tf.nn.relu, name='fc_3')
-                return fc_3
+                return fc_1
 
         # X_reshaped[0] indicates all the first sentences in each story for all batch
         x_reshaped = tf.unstack(tf.transpose(self.x, perm=[1, 0, 2, 3]))  # [story_Size, batch_size,..,..]
@@ -123,5 +123,5 @@ class Model(object):
 
         self.init = tf.global_variables_initializer()
         self.all_preds = tf.nn.softmax(self.output_rn)
-        self.loss, self.accuracy = build_loss(self.output_rn, self.answers)
+        self.loss, self.accuracy, self.prediction_summary = build_loss(self.output_rn, self.answers)
 
